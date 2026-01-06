@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>康威生命游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        #canvas {
+            display: block;
+            cursor: crosshair;
+        }
+
+        .controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(30, 30, 50, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            width: 280px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .controls::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .controls::-webkit-scrollbar-track {
+            background: #1a1a2e;
+        }
+
+        .controls::-webkit-scrollbar-thumb {
+            background: #4fc3f7;
+            border-radius: 3px;
+        }
+
+        .controls h1 {
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            color: #4fc3f7;
+            text-align: center;
+        }
+
+        .section {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #333;
+        }
+
+        .section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .section-title {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+            background: #4fc3f7;
+            color: #1a1a2e;
+            font-weight: bold;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(79, 195, 247, 0.4);
+        }
+
+        button.flex-1 {
+            flex: 1;
+        }
+
+        button.danger {
+            background: #ef5350;
+            color: white;
+        }
+
+        button.danger:hover {
+            box-shadow: 0 4px 12px rgba(239, 83, 80, 0.4);
+        }
+
+        button.secondary {
+            background: #7c4dff;
+            color: white;
+        }
+
+        button.secondary:hover {
+            box-shadow: 0 4px 12px rgba(124, 77, 255, 0.4);
+        }
+
+        button.small {
+            padding: 6px 10px;
+            font-size: 11px;
+        }
+
+        .stats {
+            background: rgba(79, 195, 247, 0.1);
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+        .stats div {
+            display: flex;
+            justify-content: space-between;
+            margin: 4px 0;
+        }
+
+        .stats span {
+            color: #4fc3f7;
+            font-weight: bold;
+        }
+
+        .slider-group {
+            margin-bottom: 10px;
+        }
+
+        .slider-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 13px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #333;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4fc3f7;
+            cursor: pointer;
+        }
+
+        .status {
+            text-align: center;
+            padding: 8px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .status.running {
+            background: rgba(76, 175, 80, 0.3);
+            color: #81c784;
+        }
+
+        .status.paused {
+            background: rgba(255, 152, 0, 0.3);
+            color: #ffb74d;
+        }
+
+        .pattern-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+        }
+
+        .pattern-btn {
+            padding: 8px 6px;
+            font-size: 11px;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .pattern-category {
+            margin-top: 10px;
+        }
+
+        .pattern-category:first-child {
+            margin-top: 0;
+        }
+
+        .category-title {
+            font-size: 11px;
+            color: #4fc3f7;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .info {
+            font-size: 11px;
+            color: #888;
+            line-height: 1.5;
+        }
+
+        .info strong {
+            color: #aaa;
+        }
+
+        .hint {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(30, 30, 50, 0.9);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: #aaa;
+        }
+
+        .preview-mode {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(124, 77, 255, 0.9);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 13px;
+            display: none;
+            z-index: 100;
+        }
+
+        .preview-mode.active {
+            display: block;
+        }
+
+        select {
+            width: 100%;
+            padding: 8px;
+            border-radius: 6px;
+            border: none;
+            background: #333;
+            color: #eee;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        select:focus {
+            outline: 2px solid #4fc3f7;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 8px;
+            background: #333;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 11px;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            background: #4fc3f7;
+            color: #1a1a2e;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    
+    <div class="controls">
+        <h1>🧬 康威生命游戏</h1>
+        
+        <div class="section">
+            <div class="status paused" id="status">⏸ 已暂停</div>
+        </div>
+        
+        <div class="section">
+            <div class="stats">
+                <div>存活细胞: <span id="cellCount">0</span></div>
+                <div>迭代次数: <span id="generation">0</span></div>
+                <div>缩放比例: <span id="zoomLevel">100%</span></div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">控制</div>
+            <div class="btn-group">
+                <button id="playPause" class="flex-1">▶ 开始</button>
+                <button id="step" class="flex-1">⏭ 单步</button>
+            </div>
+            <div class="btn-group">
+                <button id="clear" class="danger flex-1">🗑 清空</button>
+                <button id="random" class="secondary flex-1">🎲 随机</button>
+            </div>
+            <div class="slider-group">
+                <label>速度: <span id="speedValue">10</span> 代/秒</label>
+                <input type="range" id="speed" min="1" max="60" value="10">
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">预设图案</div>
+            
+            <div class="tabs">
+                <button class="tab active" data-tab="still">静物</button>
+                <button class="tab" data-tab="oscillator">振荡器</button>
+                <button class="tab" data-tab="spaceship">飞船</button>
+                <button class="tab" data-tab="gun">枪</button>
+                <button class="tab" data-tab="methuselah">玛土撒拉</button>
+            </div>
+            
+            <div id="still" class="tab-content active">
+                <div class="pattern-grid">
+                    <button class="pattern-btn" data-pattern="block">◼ 方块</button>
+                    <button class="pattern-btn" data-pattern="beehive">⬡ 蜂巢</button>
+                    <button class="pattern-btn" data-pattern="loaf">🍞 面包</button>
+                    <button class="pattern-btn" data-pattern="boat">⛵ 小船</button>
+                    <button class="pattern-btn" data-pattern="tub">🛁 浴缸</button>
+                    <button class="pattern-btn" data-pattern="pond">💧 池塘</button>
+                    <button class="pattern-btn" data-pattern="ship">🚢 大船</button>
+                    <button class="pattern-btn" data-pattern="longboat">🛶 长船</button>
+                </div>
+            </div>
+            
+            <div id="oscillator" class="tab-content">
+                <div class="pattern-grid">
+                    <button class="pattern-btn" data-pattern="blinker">➖ 信号灯</button>
+                    <button class="pattern-btn" data-pattern="toad">🐸 蟾蜍</button>
+                    <button class="pattern-btn" data-pattern="beacon">🔦 灯塔</button>
+                    <button class="pattern-btn" data-pattern="pulsar">💫 脉冲星</button>
+                    <button class="pattern-btn" data-pattern="pentadecathlon">🔟 十五烷</button>
+                    <button class="pattern-btn" data-pattern="clock">🕐 时钟</button>
+                    <button class="pattern-btn" data-pattern="octagon">⯃ 八边形</button>
+                    <button class="pattern-btn" data-pattern="fumarole">🌋 喷气孔</button>
+                </div>
+            </div>
+            
+            <div id="spaceship" class="tab-content">
+                <div class="pattern-grid">
+                    <button class="pattern-btn" data-pattern="glider">✈ 滑翔机</button>
+                    <button class="pattern-btn" data-pattern="lwss">🚀 轻型飞船</button>
+                    <button class="pattern-btn" data-pattern="mwss">🛸 中型飞船</button>
+                    <button class="pattern-btn" data-pattern="hwss">🚁 重型飞船</button>
+                    <button class="pattern-btn" data-pattern="gliderFleet">✈✈ 滑翔机队</button>
+                    <button class="pattern-btn" data-pattern="canada">🍁 加拿大鹅</button>
+                </div>
+            </div>
+            
+            <div id="gun" class="tab-content">
+                <div class="pattern-grid">
+                    <button class="pattern-btn" data-pattern="gosperGun">🔫 高斯帕枪</button>
+                    <button class="pattern-btn" data-pattern="simkinGun">💣 西姆金枪</button>
+                    <button class="pattern-btn" data-pattern="p30Gun">🎯 P30枪</button>
+                    <button class="pattern-btn" data-pattern="queenBee">🐝 蜂后飞梭</button>
+                </div>
+            </div>
+            
+            <div id="methuselah" class="tab-content">
+                <div class="pattern-grid">
+                    <button class="pattern-btn" data-pattern="rpentomino">R R五格骨牌</button>
+                    <button class="pattern-btn" data-pattern="diehard">💀 顽固分子</button>
+                    <button class="pattern-btn" data-pattern="acorn">🌰 橡子</button>
+                    <button class="pattern-btn" data-pattern="bunnies">🐰 兔子</button>
+                    <button class="pattern-btn" data-pattern="lidka">📊 利德卡</button>
+                    <button class="pattern-btn" data-pattern="switchEngine">⚡ 开关引擎</button>
+                    <button class="pattern-btn" data-pattern="piheptomino">π 七格骨牌</button>
+                    <button class="pattern-btn" data-pattern="bheptomino">B B七格骨牌</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">特殊图案</div>
+            <div class="pattern-grid">
+                <button class="pattern-btn secondary" data-pattern="infinite1">∞ 无限增长1</button>
+                <button class="pattern-btn secondary" data-pattern="infinite2">∞ 无限增长2</button>
+                <button class="pattern-btn secondary" data-pattern="infinite3">∞ 无限增长3</button>
+                <button class="pattern-btn secondary" data-pattern="breeder">🌱 繁殖者</button>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="info">
+                <strong>操作说明:</strong><br>
+                🖱 点击/拖动: 绘制细胞<br>
+                🖱 右键拖动: 移动画布<br>
+                🔄 滚轮: 缩放画布<br>
+                ⌨ 空格: 开始/暂停<br>
+                ⌨ R: 旋转预览图案<br>
+                ⌨ ESC: 取消放置图案
+            </div>
+        </div>
+    </div>
+    
+    <div class="preview-mode" id="previewMode">
+        📍 点击画布放置图案 | R旋转 | ESC取消
+    </div>
+    
+    <div class="hint">
+        💡 选择预设图案后点击画布放置，或直接绘制细胞
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // 游戏状态
+        let cells = new Map();
+        let isRunning = false;
+        let generation = 0;
+        let speed = 10;
+        let lastUpdate = 0;
+        
+        // 视图状态
+        let cellSize = 15;
+        let offsetX = 0;
+        let offsetY = 0;
+        let minCellSize = 2;
+        let maxCellSize = 50;
+        
+        // 交互状态
+        let isDragging = false;
+        let isDrawing = false;
+        let isPanning = false;
+        let lastMouseX = 0;
+        let lastMouseY = 0;
+        let drawValue = true;
+        
+        // 图案预览状态
+        let previewPattern = null;
+        let previewRotation = 0;
+        let mouseGridX = 0;
+        let mouseGridY = 0;
+        
+        // 预设图案定义
+        const patterns = {
+            // 静物 (Still lifes)
+            block: [[0,0], [1,0], [0,1], [1,1]],
+            beehive: [[1,0], [2,0], [0,1], [3,1], [1,2], [2,2]],
+            loaf: [[1,0], [2,0], [0,1], [3,1], [1,2], [3,2], [2,3]],
+            boat: [[0,0], [1,0], [0,1], [2,1], [1,2]],
+            tub: [[1,0], [0,1], [2,1], [1,2]],
+            pond: [[1,0], [2,0], [0,1], [3,1], [0,2], [3,2], [1,3], [2,3]],
+            ship: [[0,0], [1,0], [0,1], [2,1], [1,2], [2,2]],
+            longboat: [[0,0], [1,0], [0,1], [2,1], [1,2], [3,2], [2,3], [3,3]],
+            
+            // 振荡器 (Oscillators)
+            blinker: [[0,0], [1,0], [2,0]],
+            toad: [[1,0], [2,0], [3,0], [0,1], [1,1], [2,1]],
+            beacon: [[0,0], [1,0], [0,1], [3,2], [2,3], [3,3]],
+            pulsar: [
+                [2,0], [3,0], [4,0], [8,0], [9,0], [10,0],
+                [0,2], [5,2], [7,2], [12,2],
+                [0,3], [5,3], [7,3], [12,3],
+                [0,4], [5,4], [7,4], [12,4],
+                [2,5], [3,5], [4,5], [8,5], [9,5], [10,5],
+                [2,7], [3,7], [4,7], [8,7], [9,7], [10,7],
+                [0,8], [5,8], [7,8], [12,8],
+                [0,9], [5,9], [7,9], [12,9],
+                [0,10], [5,10], [7,10], [12,10],
+                [2,12], [3,12], [4,12], [8,12], [9,12], [10,12]
+            ],
+            pentadecathlon: [
+                [1,0], [2,0], [3,0],
+                [0,1], [4,1],
+                [0,2], [4,2],
+                [1,3], [2,3], [3,3],
+                [1,6], [2,6], [3,6],
+                [0,7], [4,7],
+                [0,8], [4,8],
+                [1,9], [2,9], [3,9]
+            ],
+            clock: [[2,0], [0,1], [2,1], [1,2], [3,2], [1,3]],
+            octagon: [
+                [2,0], [3,0],
+                [1,1], [4,1],
+                [0,2], [5,2],
+                [0,3], [5,3],
+                [1,4], [4,4],
+                [2,5], [3,5]
+            ],
+            fumarole: [
+                [2,0], [3,0],
+                [0,1], [1,1], [4,1], [5,1],
+                [0,2], [5,2],
+                [1,3], [4,3],
+                [2,4], [3,4]
+            ],
+            
+            // 飞船 (Spaceships)
+            glider: [[1,0], [2,1], [0,2], [1,2], [2,2]],
+            lwss: [[1,0], [4,0], [0,1], [0,2], [4,2], [0,3], [1,3], [2,3], [3,3]],
+            mwss: [[2,0], [0,1], [4,1], [5,2], [0,3], [5,3], [1,4], [2,4], [3,4], [4,4], [5,4]],
+            hwss: [[2,0], [3,0], [0,1], [5,1], [6,2], [0,3], [6,3], [1,4], [2,4], [3,4], [4,4], [5,4], [6,4]],
+            gliderFleet: [
+                [1,0], [2,1], [0,2], [1,2], [2,2],
+                [11,0], [12,1], [10,2], [11,2], [12,2],
+                [6,5], [7,6], [5,7], [6,7], [7,7],
+                [1,10], [2,11], [0,12], [1,12], [2,12],
+                [11,10], [12,11], [10,12], [11,12], [12,12]
+            ],
+            canada: [
+                [6,0], [7,0], [8,0],
+                [5,1], [9,1],
+                [4,2], [10,2],
+                [3,3], [11,3],
+                [2,4], [3,4], [11,4], [12,4],
+                [0,5], [1,5], [2,5], [12,5], [13,5], [14,5],
+                [0,6], [14,6],
+                [1,7], [4,7], [5,7], [9,7], [10,7], [13,7],
+                [2,8], [5,8], [9,8], [12,8],
+                [3,9], [11,9],
+                [4,10], [10,10],
+                [5,11], [6,11], [8,11], [9,11],
+                [7,12]
+            ],
+            
+            // 枪 (Guns)
+            gosperGun: [
+                [24,0],
+                [22,1], [24,1],
+                [12,2], [13,2], [20,2], [21,2], [34,2], [35,2],
+                [11,3], [15,3], [20,3], [21,3], [34,3], [35,3],
+                [0,4], [1,4], [10,4], [16,4], [20,4], [21,4],
+                [0,5], [1,5], [10,5], [14,5], [16,5], [17,5], [22,5], [24,5],
+                [10,6], [16,6], [24,6],
+                [11,7], [15,7],
+                [12,8], [13,8]
+            ],
+            simkinGun: [
+                [0,0], [1,0], [0,1], [1,1],
+                [7,0], [8,0], [7,1], [8,1],
+                [4,2], [5,2], [4,3], [5,3],
+                [22,8], [23,8], [21,9], [22,9], [25,9], [26,9],
+                [21,10], [22,10], [25,10], [26,10], [27,10],
+                [21,11], [22,11], [25,11],
+                [23,12],
+                [31,17], [32,17], [31,18], [33,18], [31,19],
+                [21,17], [22,17], [20,18], [22,18], [20,19], [21,19]
+            ],
+            p30Gun: [
+                [12,0], [13,0], [14,0],
+                [11,1], [15,1],
+                [16,2],
+                [0,3], [1,3], [11,3], [12,3], [15,3], [16,3], [17,3],
+                [0,4], [1,4], [13,4], [14,4], [18,4],
+                [19,5],
+                [17,6], [18,6], [19,6],
+                [18,7]
+            ],
+            queenBee: [
+                [0,0], [1,0],
+                [0,1], [2,1],
+                [2,2],
+                [3,3], [4,3],
+                [4,4], [5,4],
+                [5,5],
+                [6,6], [7,6],
+                [7,7], [8,7],
+                [8,8],
+                [9,9], [10,9],
+                [9,10], [11,10],
+                [11,11], [12,11]
+            ],
+            
+            // 玛土撒拉 (Methuselahs)
+            rpentomino: [[1,0], [2,0], [0,1], [1,1], [1,2]],
+            diehard: [[6,0], [0,1], [1,1], [1,2], [5,2], [6,2], [7,2]],
+            acorn: [[1,0], [3,1], [0,2], [1,2], [4,2], [5,2], [6,2]],
+            bunnies: [[0,0], [6,0], [2,1], [6,1], [2,2], [5,2], [7,2], [1,3], [3,3]],
+            lidka: [[0,0], [2,0], [2,1], [4,2], [4,3], [4,4], [6,3], [6,4], [6,5]],
+            switchEngine: [
+                [0,0], [1,0], [3,0], [4,0], [5,0],
+                [0,1],
+                [3,2],
+                [1,3], [2,3],
+                [3,4], [4,4], [5,4]
+            ],
+            piheptomino: [[0,0], [1,0], [2,0], [1,1], [1,2]],
+            bheptomino: [[1,0], [0,1], [1,1], [2,1], [0,2], [2,2], [1,3]],
+            
+            // 无限增长模式
+            infinite1: [
+                [6,0],
+                [4,1], [6,1], [7,1],
+                [4,2], [6,2],
+                [4,3],
+                [2,4],
+                [0,5], [2,5]
+            ],
+            infinite2: [
+                [0,0], [1,0], [2,0], [4,0],
+                [0,1],
+                [3,2], [4,2],
+                [1,3], [2,3], [4,3],
+                [0,4], [2,4], [4,4]
+            ],
+            infinite3: [
+                [0,0], [1,0], [2,0], [3,0], [4,0], [5,0], [6,0], [7,0],
+                [9,0], [10,0], [11,0], [12,0], [13,0],
+                [17,0], [18,0], [19,0],
+                [26,0], [27,0], [28,0], [29,0], [30,0], [31,0], [32,0],
+                [34,0], [35,0], [36,0], [37,0], [38,0]
+            ],
+            breeder: [
+                // 简化的繁殖者模式
+                [1,0], [2,1], [0,2], [1,2], [2,2],
+                [11,0], [12,1], [10,2], [11,2], [12,2],
+                [21,0], [22,1], [20,2], [21,2], [22,2],
+                [6,5], [7,6], [5,7], [6,7], [7,7],
+                [16,5], [17,6], [15,7], [16,7], [17,7]
+            ]
+        };
+        
+        // DOM 元素
+        const playPauseBtn = document.getElementById('playPause');
+        const stepBtn = document.getElementById('step');
+        const clearBtn = document.getElementById('clear');
+        const randomBtn = document.getElementById('random');
+        const speedSlider = document.getElementById('speed');
+        const speedValue = document.getElementById('speedValue');
+        const cellCountEl = document.getElementById('cellCount');
+        const generationEl = document.getElementById('generation');
+        const zoomLevelEl = document.getElementById('zoomLevel');
+        const statusEl = document.getElementById('status');
+        const previewModeEl = document.getElementById('previewMode');
+        
+        // 初始化画布大小
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            if (offsetX === 0 && offsetY === 0) {
+                offsetX = canvas.width / 2;
+                offsetY = canvas.height / 2;
+            }
+            draw();
+        }
+        
+        function cellKey(x, y) {
+            return `${x},${y}`;
+        }
+        
+        function parseKey(key) {
+            const [x, y] = key.split(',').map(Number);
+            return { x, y };
+        }
+        
+        function setCell(x, y, alive) {
+            const key = cellKey(x, y);
+            if (alive) {
+                cells.set(key, true);
+            } else {
+                cells.delete(key);
+            }
+        }
+        
+        function getCell(x, y) {
+            return cells.has(cellKey(x, y));
+        }
+        
+        function countNeighbors(x, y) {
+            let count = 0;
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    if (dx === 0 && dy === 0) continue;
+                    if (getCell(x + dx, y + dy)) count++;
+                }
+            }
+            return count;
+        }
+        
+        function update() {
+            const newCells = new Map();
+            const candidates = new Set();
+            
+            for (const key of cells.keys()) {
+                const { x, y } = parseKey(key);
+                for (let dy = -1; dy <= 1; dy++) {
+                    for (let dx = -1; dx <= 1; dx++) {
+                        candidates.add(cellKey(x + dx, y + dy));
+                    }
+                }
+            }
+            
+            for (const key of candidates) {
+                const { x, y } = parseKey(key);
+                const alive = getCell(x, y);
+                const neighbors = countNeighbors(x, y);
+                
+                if (alive && (neighbors === 2 || neighbors === 3)) {
+                    newCells.set(key, true);
+                } else if (!alive && neighbors === 3) {
+                    newCells.set(key, true);
+                }
+            }
+            
+            cells = newCells;
+            generation++;
+        }
+        
+        function screenToGrid(screenX, screenY) {
+            const gridX = Math.floor((screenX - offsetX) / cellSize);
+            const gridY = Math.floor((screenY - offsetY) / cellSize);
+            return { x: gridX, y: gridY };
+        }
+        
+        // 旋转图案
+        function rotatePattern(pattern, times) {
+            let result = pattern;
+            for (let i = 0; i < times % 4; i++) {
+                result = result.map(([x, y]) => [-y, x]);
+                // 归一化到正坐标
+                const minX = Math.min(...result.map(p => p[0]));
+                const minY = Math.min(...result.map(p => p[1]));
+                result = result.map(([x, y]) => [x - minX, y - minY]);
+            }
+            return result;
+        }
+        
+        // 获取当前旋转后的预览图案
+        function getRotatedPreview() {
+            if (!previewPattern) return null;
+            return rotatePattern(patterns[previewPattern], previewRotation);
+        }
+        
+        function draw() {
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const startX = Math.floor(-offsetX / cellSize) - 1;
+            const startY = Math.floor(-offsetY / cellSize) - 1;
+            const endX = Math.ceil((canvas.width - offsetX) / cellSize) + 1;
+            const endY = Math.ceil((canvas.height - offsetY) / cellSize) + 1;
+            
+            // 绘制网格
+            if (cellSize > 6) {
+                ctx.strokeStyle = '#2a2a4a';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                
+                for (let x = startX; x <= endX; x++) {
+                    const screenX = x * cellSize + offsetX;
+                    ctx.moveTo(screenX, 0);
+                    ctx.lineTo(screenX, canvas.height);
+                }
+                
+                for (let y = startY; y <= endY; y++) {
+                    const screenY = y * cellSize + offsetY;
+                    ctx.moveTo(0, screenY);
+                    ctx.lineTo(canvas.width, screenY);
+                }
+                
+                ctx.stroke();
+            }
+            
+            // 绘制原点
+            ctx.strokeStyle = '#4fc3f7';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(offsetX - 10, offsetY);
+            ctx.lineTo(offsetX + 10, offsetY);
+            ctx.moveTo(offsetX, offsetY - 10);
+            ctx.lineTo(offsetX, offsetY + 10);
+            ctx.stroke();
+            
+            // 绘制细胞
+            ctx.fillStyle = '#4fc3f7';
+            const padding = cellSize > 8 ? 1 : 0;
+            
+            for (const key of cells.keys()) {
+                const { x, y } = parseKey(key);
+                const screenX = x * cellSize + offsetX + padding;
+                const screenY = y * cellSize + offsetY + padding;
+                
+                if (screenX >= -cellSize && screenX <= canvas.width + cellSize &&
+                    screenY >= -cellSize && screenY <= canvas.height + cellSize) {
+                    ctx.fillRect(screenX, screenY, cellSize - padding * 2, cellSize - padding * 2);
+                }
+            }
+            
+            // 绘制预览图案
+            if (previewPattern) {
+                const rotated = getRotatedPreview();
+                ctx.fillStyle = 'rgba(124, 77, 255, 0.6)';
+                
+                for (const [px, py] of rotated) {
+                    const x = mouseGridX + px;
+                    const y = mouseGridY + py;
+                    const screenX = x * cellSize + offsetX + padding;
+                    const screenY = y * cellSize + offsetY + padding;
+                    ctx.fillRect(screenX, screenY, cellSize - padding * 2, cellSize - padding * 2);
+                }
+            }
+            
+            // 更新统计
+            cellCountEl.textContent = cells.size;
+            generationEl.textContent = generation;
+            zoomLevelEl.textContent = Math.round(cellSize / 15 * 100) + '%';
+        }
+        
+        function gameLoop(timestamp) {
+            if (isRunning) {
+                const interval = 1000 / speed;
+                if (timestamp - lastUpdate >= interval) {
+                    update();
+                    lastUpdate = timestamp;
+                }
+            }
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // 放置图案
+        function placePattern(gridX, gridY) {
+            if (!previewPattern) return;
+            
+            const rotated = getRotatedPreview();
+            for (const [px, py] of rotated) {
+                setCell(gridX + px, gridY + py, true);
+            }
+        }
+        
+        // 鼠标事件
+        canvas.addEventListener('mousedown', (e) => {
+            lastMouseX = e.clientX;
+            lastMouseY = e.clientY;
+            
+            if (e.button === 2 || e.button === 1) {
+                isPanning = true;
+                canvas.style.cursor = 'grabbing';
+            } else if (e.button === 0) {
+                if (previewPattern) {
+                    const { x, y } = screenToGrid(e.clientX, e.clientY);
+                    placePattern(x, y);
+                } else {
+                    isDrawing = true;
+                    const { x, y } = screenToGrid(e.clientX, e.clientY);
+                    drawValue = !getCell(x, y);
+                    setCell(x, y, drawValue);
+                }
+            }
+        });
+        
+        canvas.addEventListener('mousemove', (e) => {
+            const { x, y } = screenToGrid(e.clientX, e.clientY);
+            mouseGridX = x;
+            mouseGridY = y;
+            
+            if (isPanning) {
+                offsetX += e.clientX - lastMouseX;
+                offsetY += e.clientY - lastMouseY;
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+            } else if (isDrawing && !previewPattern) {
+                setCell(x, y, drawValue);
+            }
+        });
+        
+        canvas.addEventListener('mouseup', () => {
+            isPanning = false;
+            isDrawing = false;
+            canvas.style.cursor = previewPattern ? 'pointer' : 'crosshair';
+        });
+        
+        canvas.addEventListener('mouseleave', () => {
+            isPanning = false;
+            isDrawing = false;
+        });
+        
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            
+            const mouseX = e.clientX;
+            const mouseY = e.clientY;
+            const gridPos = screenToGrid(mouseX, mouseY);
+            
+            const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+            const newCellSize = Math.max(minCellSize, Math.min(maxCellSize, cellSize * zoomFactor));
+            
+            if (newCellSize !== cellSize) {
+                offsetX = mouseX - gridPos.x * newCellSize - newCellSize / 2;
+                offsetY = mouseY - gridPos.y * newCellSize - newCellSize / 2;
+                cellSize = newCellSize;
+            }
+        });
+        
+        canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+        
+        // 控制按钮
+        playPauseBtn.addEventListener('click', () => {
+            isRunning = !isRunning;
+            playPauseBtn.textContent = isRunning ? '⏸ 暂停' : '▶ 开始';
+            statusEl.textContent = isRunning ? '▶ 运行中' : '⏸ 已暂停';
+            statusEl.className = 'status ' + (isRunning ? 'running' : 'paused');
+        });
+        
+        stepBtn.addEventListener('click', () => {
+            if (!isRunning) {
+                update();
+            }
+        });
+        
+        clearBtn.addEventListener('click', () => {
+            cells.clear();
+            generation = 0;
+            previewPattern = null;
+            previewRotation = 0;
+            previewModeEl.classList.remove('active');
+            canvas.style.cursor = 'crosshair';
+        });
+        
+        randomBtn.addEventListener('click', () => {
+            cells.clear();
+            const range = 30;
+            for (let y = -range; y < range; y++) {
+                for (let x = -range; x < range; x++) {
+                    if (Math.random() < 0.3) {
+                        setCell(x, y, true);
+                    }
+                }
+            }
+            generation = 0;
+        });
+        
+        speedSlider.addEventListener('input', () => {
+            speed = parseInt(speedSlider.value);
+            speedValue.textContent = speed;
+        });
+        
+        // Tab 切换
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab).classList.add('active');
+            });
+        });
+        
+        // 图案按钮
+        document.querySelectorAll('.pattern-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const patternName = btn.dataset.pattern;
+                if (patterns[patternName]) {
+                    previewPattern = patternName;
+                    previewRotation = 0;
+                    previewModeEl.classList.add('active');
+                    canvas.style.cursor = 'pointer';
+                }
+            });
+        });
+        
+        // 键盘事件
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                playPauseBtn.click();
+            } else if (e.code === 'KeyR' && previewPattern) {
+                previewRotation = (previewRotation + 1) % 4;
+            } else if (e.code === 'Escape') {
+                previewPattern = null;
+                previewRotation = 0;
+                previewModeEl.classList.remove('active');
+                canvas.style.cursor = 'crosshair';
+            }
+        });
+        
+        // 初始化
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        
+        // 添加初始滑翔机
+        const glider = patterns.glider;
+        glider.forEach(([x, y]) => setCell(x, y, true));
+        
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
